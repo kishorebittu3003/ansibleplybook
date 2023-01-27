@@ -72,12 +72,12 @@
       ansible.builtin.debug:
         msg: copying a service file to /etc/systemd/system/tomcat.service    
     - name: copying file 
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: tomcat.service 
         dest: /etc/systemd/system/tomcat.service
         owner: "{{ tomcat_user }}"
         group: "{{ tomcat_group }}"
-        remote_src: yes 
+        remote_src: no  
     - name: debug
       ansible.builtin.debug:
         msg: reloading the daemon    
