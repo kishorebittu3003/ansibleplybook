@@ -1,0 +1,103 @@
+---
+- name: installing tomcat
+  become: yes
+  hosts: all
+  vars:
+    tomcat_user: tomcat 
+    tomcat_group: tomcat 
+    java_package: openjdk-11-jdk 
+    tomcat_home_directory: /opt/tomcat
+    tomcat_new_home_directory: /opt/tomcat/latest 
+    tomcat_url: https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.5/bin/apache-tomcat-10.1.5.tar.gz
+    extracted_tar_file: /opt/tomcat/apache-tomcat-10.1.5
+  tasks:
+    - name: debug 
+      ansible.builtin.debug: 
+        msg: updating java packages
+    - name: installing java
+      ansible.builtin.apt:
+        name:  "{{ java_package }}"
+        update_cache: yes
+        state: present
+    # - name: creating a directory
+    #   ansible.builtin.file:
+    #     path: /opt/tomcat
+    #     state: directory 
+    - name: debug
+      ansible.builtin.debug:
+        msg: adding user to create home     
+    - name: adding user to /opt/tomcat
+      ansible.builtin.user:
+        create_home: yes
+        name: "{{ tomcat_user }}"
+        home: "{{ tomcat_home_directory }}"
+        group: "{{ tomcat_group }}"
+        shell: /bin/false
+        state: present 
+    - name: debug
+      ansible.builtin.debug:
+        msg: copying tar file from tomcat officalwebsite     
+    - name: copying tomcat tar tar_file
+      ansible.builtin.get_url:
+        url: "{{ tomcat_url }}" 
+        dest: /tmp/apache-tomcat-10.1.4.tar.gz
+      notify:
+        - extract-tar_file
+    - name: debug
+      ansible.builtin.debug:
+        msg: creating a soft link     
+    - name: Create a symbolic link
+      ansible.builtin.file:
+        src: "{{ extracted_tar_file }}"
+        dest: "{{ tomcat_new_home_directory }}"
+        owner: "{{ tomcat_user }}" 
+        group: "{{ tomcat_group }}"
+        state: link 
+        force: yes
+        follow: no  
+      notify:
+        - add execute permissions to shell files
+        - Recursively change ownership of a directory
+    - name: debug
+      ansible.builtin.debug:
+        msg: tomcat service file     
+    - name: Create a systemd unit file
+      ansible.builtin.copy:
+        src: tomcat.service
+        dest: /etc/systemd/system/tomcat.service
+        owner: "{{ tomcat_user }}"
+        group: tomcat
+        remote_src: no 
+    - name: debug
+      ansible.builtin.debug:
+        msg: reloading the daemon     
+    - name: daemon reload
+      ansible.builtin.systemd:
+        name: tomcat.service 
+        daemon_reload: yes
+        enabled: yes
+        state: started
+  handlers:
+    - name: debug
+      ansible.builtin.debug:
+        msg: giving all permissions to shell files 
+    - name: add execute permissions to shell files
+      ansible.builtin.command: sudo sh -c 'chmod +x /opt/tomcat/latest/bin/*.sh'
+    - name: debug
+      ansible.builtin.debug:
+        msg: extracting the tar file    
+    - name: extract-tar_file
+      ansible.builtin.unarchive:
+        src: "{{ tomcat_url }}"
+        dest: /opt/tomcat/
+        remote_src: yes
+    - name: debug
+      ansible.builtin.debug:
+        msg: giving the ownership to the "{{ tomcat_new_home_directory }}"     
+    - name: Recursively change ownership of a directory
+      ansible.builtin.file:
+        path: "{{ tomcat_new_home_directory }}" 
+        state: directory
+        recurse: yes
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"            
