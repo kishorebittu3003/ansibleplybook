@@ -1,0 +1,10 @@
+all:
+  children:
+    appserver:
+      hosts:
+        172.31.0.91:
+          java_package: openjdk-11-jdk
+          java_home: /usr/lib/jvm/java-11-openjdk-amd64
+          java_opts: '-Djava.security.egd=file:///dev/urandom -Djava.awt.headless=true'
+        
+        
